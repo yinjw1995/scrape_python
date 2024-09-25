@@ -1,35 +1,33 @@
-import schedule
-import time
+from flask import Flask, jsonify
 import subprocess
+
+app = Flask(__name__)
 
 def run_script(script_name):
     print(f"Running {script_name}...")
     try:
         result = subprocess.run(["python", script_name], check=True, capture_output=True, text=True)
         print(f"{script_name} completed successfully.")
-        return True
+        return True, result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error running {script_name}:")
         print(f"Exit code: {e.returncode}")
         print(f"Error output: {e.stderr}")
-        return False
+        return False, e.stderr
 
+@app.route('/run-job', methods=['GET'])
 def job():
-    # 运行 scrape_tw_data.py 脚本
-    if run_script("scrape_tw_data.py"):
-        # 只有在 scrape_tw_data.py 成功运行后才运行 extract_newdata.py
-        run_script("extract_newdata.py")
+    results = {}
+    success, output = run_script("scrape_tw_data.py")
+    results['scrape_tw_data'] = {'success': success, 'output': output}
+    
+    if success:
+        success, output = run_script("extract_newdata.py")
+        results['extract_newdata'] = {'success': success, 'output': output}
     else:
-        print("Skipping extract_newdata.py due to error in scrape_tw_data.py")
-
-# 设置每15分钟运行一次任务
-schedule.every(1).minutes.do(job)
+        results['extract_newdata'] = {'success': False, 'output': "Skipped due to error in scrape_tw_data.py"}
+    
+    return jsonify(results)
 
 if __name__ == "__main__":
-    print("Once first.")
-    job()  # 立即运行一次任务
-    
-    print("Starting the scheduler. Press Ctrl+C to exit.")
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    app.run(host='0.0.0.0', port=3000)
