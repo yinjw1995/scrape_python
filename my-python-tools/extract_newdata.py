@@ -2,6 +2,8 @@ import json
 import os
 import requests
 import re
+import pytz
+from datetime import datetime
 import sent_info_to_feishu
 def read_json_file(file_name):
     try:
@@ -42,6 +44,14 @@ for post in post_data['timeline']:
     text = re.sub(r'https?://t\.co/\S+', '', text).strip()
     print(f"Tweet ID: {current_tweet_id}")
     print(f"Text: {text}")
+
+    #提取时间
+    created_at = post['created_at']
+    #转换为北京时间
+    created_at = datetime.strptime(created_at, '%a %b %d %H:%M:%S %z %Y')
+    created_at = created_at.astimezone(pytz.timezone('Asia/Shanghai'))
+    created_at = created_at.strftime('%Y-%m-%d %H:%M:%S')
+    print(f"Created at: {created_at}")
     
     image_paths = []
     # 检查是否有 media 和 photo
@@ -61,7 +71,7 @@ for post in post_data['timeline']:
                 image_paths.append(file_name)
                 print(image_paths)
     
-    sent_info_to_feishu.send_message_to_feishu(text,image_paths)
+    sent_info_to_feishu.send_message_to_feishu(text=text,created_at=created_at,image_paths=image_paths)
     print("---")
 
 # 更新 config_info.json

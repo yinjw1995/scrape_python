@@ -3,6 +3,7 @@
 #t-g1049nfo6WKRG3CZDC4RNU6VI5IVNARRSK3ZK7A5
 import requests
 import json
+import os
 from datetime import datetime
 from requests_toolbelt import MultipartEncoder
 
@@ -35,7 +36,7 @@ def upload_image_to_feishu(picturePath,token):
     }
     form = {
         "image_type": "message",
-        "image": (open(picturePath.replace('/', '\\'), 'rb'))
+        "image": (open(os.path.normpath(picturePath), 'rb'))
     }
     multi_form = MultipartEncoder(form)
     headers['Content-Type'] = multi_form.content_type
@@ -47,19 +48,21 @@ def upload_image_to_feishu(picturePath,token):
 
 
 
-def send_message_to_feishu(text, image_paths=None):
+def send_message_to_feishu(text,created_at=None, image_paths=None):
     webhook_url = "https://open.feishu.cn/open-apis/bot/v2/hook/f93875c1-9739-4e24-b677-cf56e83c6f3a"
     token = get_token_frome_feishu()
     headers = {
         "Content-Type": "application/json"
     }
+    if created_at is None:
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     payload = {
         "msg_type": "post",
         "content": {
             "post": {
                 "zh_cn": {
-                    "title": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "title": created_at,
                     "content": [
                         [
                             {
@@ -99,4 +102,4 @@ def send_message_to_feishu(text, image_paths=None):
 # 使用示例
 if __name__ == "__main__":
     message = "这是一条来自Python脚本的测试消息!"
-    send_message_to_feishu(message,['1837018838568976559/screenshot-20240923-155930.png','1837018838568976559/screenshot-20240923-155939.png'])
+    send_message_to_feishu(message,['1837015319111712907/photo_1.jpg'])
